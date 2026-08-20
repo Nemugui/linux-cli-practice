@@ -224,6 +224,28 @@ ip route show
 arp -a
 ```
 
+### Task 17 — DNS capture
+```bash
+sudo tshark -i eth0 -f "port 53" &
+dig google.com 
+facebook.com 
+github.com
+kill %1
+```
+
+### Task 18 — ARP capture
+```bash
+sudo tshark -i eth0 -f "arp" &
+ping -c 2 192.168.110.1
+kill %1
+```
+### Task 19 — Save and analyze
+```bash
+sudo timeout 20 tshark -i eth0 -w /tmp/daily.pcap
+tshark -r /tmp/daily.pcap | wc -l
+tshark -r /tmp/daily.pcap -Y "dns" | head -10
+```
+
 ---
 
 ## 📋 Daily Log Template
