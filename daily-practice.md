@@ -164,6 +164,7 @@ top -bn1 | head -20
 # Always know where you are on the network
 ip addr | grep inet
 ip route show
+ifconfig
 cat /etc/resolv.conf
 curl ifconfig.me
 echo "Private IP check complete"
@@ -210,7 +211,7 @@ nmap -p 80,443,22,21,53 192.168.110.1
 curl -I https://google.com
 curl -I https://facebook.com
 curl -I http://192.168.110.1
-curl ifconfig.me && echo ""
+curl ifconfig.me
 ```
 
 ---
