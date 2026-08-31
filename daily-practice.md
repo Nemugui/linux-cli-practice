@@ -157,14 +157,11 @@ top -bn1 | head -20
 
 ## 🌐 PHASE 2 ADDITIONS — Networking
 
-*(Add these after completing Phase 2 topics)*
-
 ### Task 11 — Network Identity Check
 ```bash
 # Always know where you are on the network
 ip addr | grep inet
 ip route show
-ifconfig
 cat /etc/resolv.conf
 curl ifconfig.me
 echo "Private IP check complete"
@@ -225,22 +222,104 @@ ip route show
 arp -a
 ```
 
-### Task 17 — DNS capture
+---
+
+## 🗺️ NMAP MASTERY ADDITIONS — Week 1
+
+### Task 17 — Scan Type Practice
+```bash
+# Practice all 4 scan types daily
+# SYN stealth scan (default, stealthy)
+sudo nmap -sS 192.168.110.1
+
+# TCP connect scan (loud, no root needed)
+nmap -sT 192.168.110.1
+
+# ACK scan (firewall mapping)
+sudo nmap -sA 192.168.110.1
+
+# UDP scan top 20 ports (slow but finds DNS/DHCP/SNMP)
+sudo nmap -sU --top-ports 20 192.168.110.1
+```
+
+---
+
+### Task 18 — NSE Script Practice
+```bash
+# Run default scripts on router
+sudo nmap -sC 192.168.110.1
+
+# Professional combo — use this daily
+sudo nmap -sS -sV -sC -O 192.168.110.1
+
+# Check HTTP info
+sudo nmap --script http-title,http-headers -p 80 192.168.110.1
+
+# Check SSL certificate
+sudo nmap --script ssl-cert -p 443 192.168.110.1
+
+# Check DNS security
+sudo nmap --script dns-recursion -p 53 192.168.110.1
+```
+
+---
+
+### Task 19 — Output Format Practice
+```bash
+# Always save your scans
+mkdir -p ~/Documents/scans
+
+# Save in all formats
+sudo nmap -sS -sV 192.168.110.1 -oA ~/Documents/scans/router_$(date +%Y%m%d)
+
+# Verify files created
+ls ~/Documents/scans/
+
+# Search through grepable output
+grep "open" ~/Documents/scans/router_$(date +%Y%m%d).gnmap
+
+# Read normal output
+cat ~/Documents/scans/router_$(date +%Y%m%d).nmap
+```
+
+---
+
+### Task 20 — Full Network Scan and Document
+```bash
+# Discover all hosts
+sudo nmap -sn 192.168.110.0/24 -oG ~/Documents/scans/hosts_$(date +%Y%m%d).gnmap
+
+# Find all live hosts
+grep "Up" ~/Documents/scans/hosts_$(date +%Y%m%d).gnmap
+
+# Find hosts with specific ports open
+grep "80/open" ~/Documents/scans/hosts_$(date +%Y%m%d).gnmap
+grep "445/open" ~/Documents/scans/hosts_$(date +%Y%m%d).gnmap
+```
+
+---
+
+### Task 21 — DNS Capture with tshark
 ```bash
 sudo tshark -i eth0 -f "port 53" &
-dig google.com 
-facebook.com 
-github.com
+dig google.com
+dig facebook.com
+dig github.com
 kill %1
 ```
 
-### Task 18 — ARP capture
+---
+
+### Task 22 — ARP Capture
 ```bash
 sudo tshark -i eth0 -f "arp" &
 ping -c 2 192.168.110.1
 kill %1
 ```
-### Task 19 — Save and analyze
+
+---
+
+### Task 23 — Save and Analyze Capture
 ```bash
 sudo timeout 20 tshark -i eth0 -w /tmp/daily.pcap
 tshark -r /tmp/daily.pcap | wc -l
@@ -260,7 +339,7 @@ mkdir -p ~/Documents/daily-logs && echo -e "DATE: $(date)\nHOSTNAME: $(hostname)
 
 ---
 
-## 🏆 Challenge Tasks (Do these when you finish the daily tasks)
+## 🏆 Challenge Tasks
 
 ### Challenge 1 — The Chain Master
 Build this entire structure in ONE single chained command:
@@ -280,7 +359,6 @@ Then display all files combined using wildcards.
 
 ### Challenge 2 — The Investigator
 ```bash
-# Find all information about your system in one session
 echo "=== SYSTEM INFO ===" && whoami && hostname && uname -a && echo "=== NETWORK INFO ===" && ip addr | grep inet && echo "=== PUBLIC IP ===" && curl -s ifconfig.me && echo "" && echo "=== PROCESSES ===" && ps aux | wc -l && echo "processes running" && echo "=== DISK SPACE ===" && df -h | grep -v tmpfs
 ```
 
@@ -288,7 +366,6 @@ echo "=== SYSTEM INFO ===" && whoami && hostname && uname -a && echo "=== NETWOR
 
 ### Challenge 3 — The Log Analyzer
 ```bash
-# Analyze system logs like a real security analyst
 sudo grep "Failed" /var/log/auth.log 2>/dev/null | tail -10
 sudo grep "Accepted" /var/log/auth.log 2>/dev/null | tail -10
 sudo grep "sudo" /var/log/auth.log 2>/dev/null | tail -10
@@ -298,7 +375,6 @@ sudo grep "sudo" /var/log/auth.log 2>/dev/null | tail -10
 
 ### Challenge 4 — DNS Enumeration
 ```bash
-# Enumerate DNS records for multiple domains
 for domain in google.com facebook.com github.com tryhackme.com; do
   echo "=== $domain ===" && dig $domain A +short
 done
@@ -308,10 +384,67 @@ done
 
 ### Challenge 5 — Port Scanner One-liner
 ```bash
-# Quick port check on your router
 for port in 21 22 23 25 53 80 443 3306 8080 8443; do
   nmap -p $port --open 192.168.110.1 2>/dev/null | grep "open" && echo "Port $port is OPEN on router" || echo "Port $port closed"
 done
+```
+
+---
+
+### Challenge 6 — NSE Script Hunt (NEW)
+```bash
+# Find all scripts for a specific service
+ls /usr/share/nmap/scripts/ | grep smb
+ls /usr/share/nmap/scripts/ | grep http
+ls /usr/share/nmap/scripts/ | grep vuln
+
+# Pick one you haven't used before
+# Read what it does
+nmap --script-help <script-name>
+
+# Run it on your router or a home network device
+sudo nmap --script <script-name> 192.168.110.1
+```
+
+---
+
+### Challenge 7 — Full Pentest Simulation (NEW)
+```bash
+# Simulate a real pentest on your home network
+
+# Step 1 — Discover live hosts
+sudo nmap -sn 192.168.110.0/24 -oG ~/Documents/scans/hosts.gnmap
+
+# Step 2 — Extract live IPs
+grep "Up" ~/Documents/scans/hosts.gnmap | cut -d" " -f2
+
+# Step 3 — Deep scan router
+sudo nmap -sS -sV -sC -O 192.168.110.1 -oA ~/Documents/scans/router_full
+
+# Step 4 — Run vuln scripts
+sudo nmap --script vuln 192.168.110.1 -oN ~/Documents/scans/router_vuln.txt
+
+# Step 5 — Read and document findings
+cat ~/Documents/scans/router_full.nmap
+cat ~/Documents/scans/router_vuln.txt
+```
+
+---
+
+### Challenge 8 — Scan Type Comparison (NEW)
+```bash
+# Compare results of different scan types on same target
+echo "=== SYN SCAN ===" && sudo nmap -sS 192.168.110.1
+echo "=== TCP SCAN ===" && nmap -sT 192.168.110.1
+echo "=== ACK SCAN ===" && sudo nmap -sA 192.168.110.1
+
+# Save comparison
+sudo nmap -sS 192.168.110.1 -oN ~/Documents/scans/syn_scan.txt
+nmap -sT 192.168.110.1 -oN ~/Documents/scans/tcp_scan.txt
+sudo nmap -sA 192.168.110.1 -oN ~/Documents/scans/ack_scan.txt
+
+# What differences do you notice?
+diff ~/Documents/scans/syn_scan.txt ~/Documents/scans/tcp_scan.txt
 ```
 
 ---
@@ -322,31 +455,43 @@ Mark off when you can do each task WITHOUT looking at the cheat sheet:
 
 ```
 Phase 1 Tasks:
-[ ] Task 1  — Navigation Gauntlet
-[ ] Task 2  — File Creation Chain
-[ ] Task 3  — Folder Structure Building
-[ ] Task 4  — File Manipulation
-[ ] Task 5  — Echo and Redirection
-[ ] Task 6  — Piping and Filtering
-[ ] Task 7  — Search and Find
-[ ] Task 8  — Wildcards
-[ ] Task 9  — System Reconnaissance
-[ ] Task 10 — Process Investigation
+[x] Task 1  — Navigation Gauntlet
+[x] Task 2  — File Creation Chain
+[x] Task 3  — Folder Structure Building
+[x] Task 4  — File Manipulation
+[x] Task 5  — Echo and Redirection
+[x] Task 6  — Piping and Filtering
+[x] Task 7  — Search and Find
+[x] Task 8  — Wildcards
+[x] Task 9  — System Reconnaissance
+[x] Task 10 — Process Investigation
 
 Phase 2 Tasks:
-[ ] Task 11 — Network Identity Check
-[ ] Task 12 — Connectivity Test
-[ ] Task 13 — DNS Investigation
-[ ] Task 14 — Network Scan Practice
-[ ] Task 15 — Web Reconnaissance
-[ ] Task 16 — Active Connections
+[x] Task 11 — Network Identity Check
+[x] Task 12 — Connectivity Test
+[x] Task 13 — DNS Investigation
+[x] Task 14 — Network Scan Practice
+[x] Task 15 — Web Reconnaissance
+[x] Task 16 — Active Connections
+
+Nmap Mastery Tasks:
+[x] Task 17 — Scan Type Practice
+[x] Task 18 — NSE Script Practice
+[x] Task 19 — Output Format Practice
+[x] Task 20 — Full Network Scan and Document
+[ ] Task 21 — DNS Capture with tshark
+[ ] Task 22 — ARP Capture
+[ ] Task 23 — Save and Analyze Capture
 
 Challenge Tasks:
-[ ] Challenge 1 — The Chain Master
-[ ] Challenge 2 — The Investigator
-[ ] Challenge 3 — The Log Analyzer
-[ ] Challenge 4 — DNS Enumeration
-[ ] Challenge 5 — Port Scanner One-liner
+[x] Challenge 1 — The Chain Master
+[x] Challenge 2 — The Investigator
+[x] Challenge 3 — The Log Analyzer
+[x] Challenge 4 — DNS Enumeration
+[x] Challenge 5 — Port Scanner One-liner
+[ ] Challenge 6 — NSE Script Hunt
+[ ] Challenge 7 — Full Pentest Simulation
+[ ] Challenge 8 — Scan Type Comparison
 ```
 
 ---
