@@ -299,33 +299,146 @@ grep "445/open" ~/Documents/scans/hosts_$(date +%Y%m%d).gnmap
 
 ---
 
-### Task 21 — DNS Capture with tshark
+## 🦈 WIRESHARK MASTERY ADDITIONS — Week 2
+
+### Task 21 — tshark Interface Check
 ```bash
+# Always start here — know your interfaces
+tshark -D
+```
+Expected: list of interfaces, eth0 is your main one.
+
+---
+
+### Task 22 — Basic tshark Capture
+```bash
+# Capture 50 packets and read output
+sudo tshark -i eth0 -c 50
+```
+Read each line:
+```
+No.  Time    Source → Destination  Protocol  Info
+```
+
+---
+
+### Task 23 — Capture Filter Practice (-f)
+```bash
+# Capture only DNS traffic
+sudo tshark -i eth0 -f "port 53" -c 20
+
+# Capture only HTTP
+sudo tshark -i eth0 -f "port 80" -c 20
+
+# Capture only router traffic
+sudo tshark -i eth0 -f "host 192.168.110.1" -c 20
+
+# Capture only TCP
+sudo tshark -i eth0 -f "tcp" -c 20
+```
+
+---
+
+### Task 24 — Display Filter Practice (-Y)
+```bash
+# Capture then display filter
+sudo timeout 20 tshark -i eth0 -w /tmp/daily.pcap
+
+# Now filter the saved file
+tshark -r /tmp/daily.pcap -Y "dns"
+tshark -r /tmp/daily.pcap -Y "http"
+tshark -r /tmp/daily.pcap -Y "tcp.flags.syn == 1"
+tshark -r /tmp/daily.pcap -Y "ip.src == 192.168.110.2"
+```
+
+---
+
+### Task 25 — Save and Analyze Capture
+```bash
+# Save 30 seconds of traffic
+sudo timeout 30 tshark -i eth0 -w /tmp/capture_$(date +%Y%m%d).pcap
+
+# Analyze
+tshark -r /tmp/capture_$(date +%Y%m%d).pcap | wc -l
+tshark -r /tmp/capture_$(date +%Y%m%d).pcap -Y "dns" | head -10
+tshark -r /tmp/capture_$(date +%Y%m%d).pcap -Y "tcp.flags.syn == 1" | wc -l
+```
+
+---
+
+### Task 26 — DNS Capture While Digging
+```bash
+# Terminal 1 — start capture
 sudo tshark -i eth0 -f "port 53" &
+
+# Run DNS queries
 dig google.com
 dig facebook.com
 dig github.com
+dig tryhackme.com
+
+# Stop capture
 kill %1
 ```
 
 ---
 
-### Task 22 — ARP Capture
+### Task 27 — Extract DNS Domains Visited
 ```bash
-sudo tshark -i eth0 -f "arp" &
-ping -c 2 192.168.110.1
-kill %1
+# Save capture first
+sudo timeout 30 tshark -i eth0 -w /tmp/dns_check.pcap
+
+# Extract all domain names queried
+tshark -r /tmp/dns_check.pcap -Y "dns" -T fields -e dns.qry.name | sort -u
 ```
+This shows every domain your Kali queried — powerful for security analysis.
 
 ---
 
-### Task 23 — Save and Analyze Capture
+### Task 28 — Capture nmap Scan in tshark
 ```bash
-sudo timeout 20 tshark -i eth0 -w /tmp/daily.pcap
-tshark -r /tmp/daily.pcap | wc -l
-tshark -r /tmp/daily.pcap -Y "dns" | head -10
-```
+# Terminal 1 — start tshark capture
+sudo tshark -i eth0 -f "host 192.168.110.1" -w /tmp/nmap_capture.pcap &
 
+# Terminal 2 — run nmap scan
+sudo nmap -sS 192.168.110.1
+
+# Stop capture
+kill %1
+
+# Analyze the scan
+tshark -r /tmp/nmap_capture.pcap -Y "tcp.flags.syn == 1 and tcp.flags.ack == 0" | wc -l
+tshark -r /tmp/nmap_capture.pcap -Y "tcp.flags.reset == 1" | wc -l
+tshark -r /tmp/nmap_capture.pcap -Y "tcp.flags.syn == 1 and tcp.flags.ack == 1" | head -10
+```
+Last command finds open ports — SYN-ACK responses from router.
+
+---
+
+### Task 29 — ARP Traffic Analysis
+```bash
+# Capture ARP traffic
+sudo tshark -i eth0 -f "arp" -c 20
+
+# Or capture and analyze
+sudo timeout 15 tshark -i eth0 -f "arp" -w /tmp/arp.pcap
+tshark -r /tmp/arp.pcap
+```
+ARP shows which devices are asking "who has this IP?" — foundational for understanding network discovery.
+
+---
+
+### Task 30 — Field Extraction
+```bash
+# Extract just source and destination IPs
+tshark -r /tmp/capture_$(date +%Y%m%d).pcap -T fields -e ip.src -e ip.dst | sort -u
+
+# Extract protocol and destination port
+tshark -r /tmp/capture_$(date +%Y%m%d).pcap -T fields -e ip.dst -e tcp.dstport | sort -u | head -20
+
+# Find all unique IPs contacted
+tshark -r /tmp/capture_$(date +%Y%m%d).pcap -T fields -e ip.dst | sort -u
+```
 ---
 
 ## 📋 Daily Log Template
@@ -446,12 +559,42 @@ sudo nmap -sA 192.168.110.1 -oN ~/Documents/scans/ack_scan.txt
 # What differences do you notice?
 diff ~/Documents/scans/syn_scan.txt ~/Documents/scans/tcp_scan.txt
 ```
+### Challenge 9 — tshark Security Analysis (NEW)
+```bash
+# Capture 60 seconds of all traffic
+sudo timeout 60 tshark -i eth0 -w /tmp/security_analysis.pcap
+
+# Browse some websites during capture
+
+# Analyze findings
+echo "=== TOTAL PACKETS ===" && tshark -r /tmp/security_analysis.pcap | wc -l
+echo "=== DOMAINS VISITED ===" && tshark -r /tmp/security_analysis.pcap -Y "dns" -T fields -e dns.qry.name | sort -u
+echo "=== UNIQUE IPs CONTACTED ===" && tshark -r /tmp/security_analysis.pcap -T fields -e ip.dst | sort -u | grep -v "192.168"
+echo "=== SYN PACKETS ===" && tshark -r /tmp/security_analysis.pcap -Y "tcp.flags.syn==1 and tcp.flags.ack==0" | wc -l
+echo "=== HTTP REQUESTS ===" && tshark -r /tmp/security_analysis.pcap -Y "http" | wc -l
+```
 
 ---
 
-## 📈 Progress Tracker
+### Challenge 10 — Capture and Compare (NEW)
+```bash
+# Before nmap scan — capture baseline
+sudo timeout 10 tshark -i eth0 -w /tmp/baseline.pcap
+echo "Baseline packets:" && tshark -r /tmp/baseline.pcap | wc -l
 
-Mark off when you can do each task WITHOUT looking at the cheat sheet:
+# During nmap scan — capture scan traffic
+sudo tshark -i eth0 -f "host 192.168.110.1" -w /tmp/scan_traffic.pcap &
+sudo nmap -sS -sV 192.168.110.1
+kill %1
+
+echo "Scan packets:" && tshark -r /tmp/scan_traffic.pcap | wc -l
+echo "SYN packets sent:" && tshark -r /tmp/scan_traffic.pcap -Y "tcp.flags.syn==1 and tcp.flags.ack==0" | wc -l
+echo "Open ports (SYN-ACK received):" && tshark -r /tmp/scan_traffic.pcap -Y "tcp.flags.syn==1 and tcp.flags.ack==1" | wc -l
+echo "Closed ports (RST received):" && tshark -r /tmp/scan_traffic.pcap -Y "tcp.flags.reset==1" | wc -l
+```
+---
+
+## 📈 Progress Tracker
 
 ```
 Phase 1 Tasks:
@@ -479,19 +622,50 @@ Nmap Mastery Tasks:
 [x] Task 18 — NSE Script Practice
 [x] Task 19 — Output Format Practice
 [x] Task 20 — Full Network Scan and Document
-[ ] Task 21 — DNS Capture with tshark
-[ ] Task 22 — ARP Capture
-[ ] Task 23 — Save and Analyze Capture
+
+Wireshark/tshark Tasks:
+[x] Task 21 — tshark Interface Check
+[x] Task 22 — Basic tshark Capture
+[x] Task 23 — Capture Filter Practice (-f)
+[x] Task 24 — Display Filter Practice (-Y)
+[x] Task 25 — Save and Analyze Capture
+[x] Task 26 — DNS Capture While Digging
+[x] Task 27 — Extract DNS Domains Visited
+[x] Task 28 — Capture nmap Scan in tshark
+[x] Task 29 — ARP Traffic Analysis
+[x] Task 30 — Field Extraction
 
 Challenge Tasks:
-[x] Challenge 1 — The Chain Master
-[x] Challenge 2 — The Investigator
-[x] Challenge 3 — The Log Analyzer
-[x] Challenge 4 — DNS Enumeration
-[x] Challenge 5 — Port Scanner One-liner
-[ ] Challenge 6 — NSE Script Hunt
-[ ] Challenge 7 — Full Pentest Simulation
-[ ] Challenge 8 — Scan Type Comparison
+[x] Challenge 1  — The Chain Master
+[x] Challenge 2  — The Investigator
+[x] Challenge 3  — The Log Analyzer
+[x] Challenge 4  — DNS Enumeration
+[x] Challenge 5  — Port Scanner One-liner
+[x] Challenge 6  — NSE Script Hunt
+[x] Challenge 7  — Full Pentest Simulation
+[x] Challenge 8  — Scan Type Comparison
+[ ] Challenge 9  — tshark Security Analysis
+[ ] Challenge 10 — Capture and Compare
+```
+
+---
+
+## 📅 What Gets Added Each Phase
+
+```
+Phase 3  (Linux)      → file permissions, chmod, chown,
+                        bash scripting, cron jobs, log analysis
+Phase 4  (Python)     → run python scripts, automate tasks
+Phase 5  (Web)        → curl requests, header analysis,
+                        cookie inspection
+Phase 6  (Cyber Fund) → hash checking, encryption tools
+Phase 7  (Eth Hack)   → metasploit basics, exploitation practice
+Phase 8  (Web App)    → burp suite, sql injection practice
+Phase 9  (Net Sec)    → advanced wireshark, traffic analysis
+Phase 10 (Forensics)  → file carving, log investigation
+Phase 11 (SOC)        → splunk queries, alert analysis
+Phase 12 (Cloud)      → aws cli, cloud enumeration
+Phase 13 (Malware)    → sandbox analysis, yara rules
 ```
 
 ---
@@ -504,26 +678,6 @@ You are not done with daily practice until:
 →  you understood the output
 →  you documented at least one interesting finding
 →  you asked yourself "what does this mean for security?"
-```
-
----
-
-## 📅 What Gets Added Each Phase
-
-```
-Phase 3  (Linux)      → file permissions, user management,
-                        bash scripting, cron jobs, log analysis
-Phase 4  (Python)     → run python scripts, automate tasks
-Phase 5  (Web)        → curl requests, header analysis,
-                        cookie inspection
-Phase 6  (Cyber Fund) → hash checking, encryption tools
-Phase 7  (Eth Hack)   → metasploit basics, exploitation practice
-Phase 8  (Web App)    → burp suite, sql injection practice
-Phase 9  (Net Sec)    → wireshark captures, traffic analysis
-Phase 10 (Forensics)  → file carving, log investigation
-Phase 11 (SOC)        → splunk queries, alert analysis
-Phase 12 (Cloud)      → aws cli, cloud enumeration
-Phase 13 (Malware)    → sandbox analysis, yara rules
 ```
 
 ---
