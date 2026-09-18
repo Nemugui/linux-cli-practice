@@ -186,6 +186,8 @@ traceroute google.com
 dig google.com | grep -A1 "ANSWER SECTION"
 dig facebook.com | grep -A1 "ANSWER SECTION"
 dig -x 8.8.8.8 | grep PTR
+nsloopkup google.com
+dnsrecon -d google.com -n 192.168.110.1
 dig @1.1.1.1 google.com | grep "Query time"
 dig @8.8.8.8 google.com | grep "Query time"
 ```
