@@ -210,7 +210,6 @@ nmap -p 80,443,22,21,53 192.168.110.1
 curl -I https://google.com
 curl -I https://facebook.com
 curl -I http://192.168.110.1
-curl ifconfig.me
 ```
 
 ---
