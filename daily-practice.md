@@ -1,7 +1,6 @@
 # 🗡️ Daily CLI Practice — Nemugui
 **Repository:** linux-cli-practice
 **Rule:** I do this every single day before studying. No exceptions.
-**Time needed:** 20–30 minutes
 
 ---
 
